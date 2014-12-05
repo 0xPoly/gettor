@@ -171,6 +171,54 @@ class Core(object):
         # thanks for stopping by
         return links
 
+    def get_checksums(self):
+        # read the links files using ConfigParser
+        # see the README for more details on the format used
+        links = []
+
+        # look for files ending with .links
+        p = re.compile('.*\.links$')
+
+        for name in os.listdir(self.linksdir):
+            path = os.path.abspath(os.path.join(self.linksdir, name))
+            if os.path.isfile(path) and p.match(path):
+                links.append(path)
+
+        # let's create a dictionary linking each provider with the links
+        # found for os and lc. This way makes it easy to check if no
+        # links were found
+        providers = {}
+        checksums = []
+
+        package = re.compile("Package*")
+
+        # reading links from providers directory
+        for name in links:
+            # we're reading files listed on linksdir, so they must exist!
+            config = ConfigParser.ConfigParser()
+            config.read(name)
+
+            try:
+                pname = config.get('provider', 'name')
+            except ConfigParser.Error as e:
+                raise InternalError("Couldn't get 'name' from 'provider'")
+
+            try:
+                for section in config.sections():
+                    if self.supported_os.find(section) != -1:
+                       for locale in config.options(section):
+                               for line in config.get(section, locale).split("\n"):
+                                   if package.match(line):
+                                      checksums.append(line + "\n")
+                       checksums.append("\n")
+            except ConfigParser.Error as e:
+                raise InternalError("Error reading sections")
+
+        if checksums:
+           hashes = "".join(checksums)
+           hashes.replace(",", "\n")
+           return hashes
+
     def _get_links(self, osys, lc):
         """Internal method to get the links.
 

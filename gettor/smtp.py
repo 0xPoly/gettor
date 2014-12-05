@@ -271,15 +271,22 @@ class SMTP(object):
         supported_os = self.core.get_supported_os()
 
         # if no OS is found, help request by default
+        # if both OS and checksum request found, first one takes precendence
         found_os = False
+        found_checksums = False
         lines = msg.split(' ')
         for word in lines:
-            if not found_os:
+            if not found_os and not found_checksums:
                 for os in supported_os:
                     if re.match(os, word, re.IGNORECASE):
                         req['os'] = os
                         req['type'] = 'links'
                         found_os = True
+                        break
+                    elif re.match("checksum", word, re.IGNORECASE):
+                        req['type'] = 'checksums'
+                        req['os'] = None
+                        found_checksums = True
                         break
             else:
                 break
@@ -370,6 +377,27 @@ class SMTP(object):
         except SendEmailError as e:
             raise InternalError("Error while sending help message")
 
+    def _send_checksums(self, checksums, lc, from_addr, to_addr):
+        """Send help message.
+
+        Get the message in the proper language (according to the locale),
+        replace variables (if any) and send the email.
+
+        :param: lc (string) the locale.
+        :param: from_addr (string) the address of the sender.
+        :param: to_addr (string) the address of the recipient.
+
+        """
+        # obtain the content in the proper language and send it
+        checksums_subject = self._get_msg('checksums_subject', lc)
+        checksums_msg = self._get_msg('checksums_msg', lc)
+        checksums_msg = checksums_msg % checksums
+
+        try:
+            self._send_email(from_addr, to_addr, checksums_subject, checksums_msg)
+        except SendEmailError as e:
+            raise InternalError("Error while sending help message")
+
     def _send_unsupported_lc(self, lc, os, from_addr, to_addr):
         """Send unsupported locale message.
 
@@ -448,7 +476,7 @@ class SMTP(object):
                 # our address should have the locale requested
                 our_addr = "gettor+%s@%s" % (req['lc'], self.our_domain)
 
-                # two possible options: asking for help or for the links
+                # three possible options: asking for help, checksums or links
                 if req['type'] == 'help':
                     # make sure we can send emails
                     try:
@@ -457,6 +485,22 @@ class SMTP(object):
                         status = 'internal_error'
                         raise InternalError("Something's wrong with the SMTP "
                                             "server: %s" % str(e))
+
+                elif req['type'] == 'checksums':
+                    try:
+                        checksums = self.core.get_checksums()
+                    except (core.InternalError, core.ConfigurationError) as e:
+                        status = 'core_error'
+                        # something went wrong with the core
+                        raise InternalError("Error obtaining the checksums")
+
+                    #make sure we can send emails
+                    try:
+                        self._send_checksums(checksums, req['lc'], our_addr, norm_from_addr)
+                    except SendEmailError as e:
+                         status = 'internal_error'
+                         raise InternalError("Something's wong with the SMTP "
+                                             "server: %s" % str(e))
 
                 elif req['type'] == 'links':
                     try:

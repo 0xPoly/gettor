@@ -12,6 +12,10 @@ msgstr "[GetTor] Links for your request"
 msgid "help_subject"
 msgstr "[GetTor] Help"
 
+# Checksums Subject
+msgid "checksums_subject"
+msgstr "[GetTor] Checksums"
+
 #: Delay subject
 msgid "delay_subject"
 msgstr "[GetTor] Delay message"
@@ -89,6 +93,29 @@ Please reply to this message with one of the options below:\n\
 And I will send you the download instructions quickly.\n\
 \n\
 Tip: Just send a blank reply to this message if you are not sure."
+
+# Checksums message
+msgid "checksums_msg"
+msgstr "Thank you for your intrest in Tor Browser checksums.\n\
+\n\
+Here are all the SHA256 checksums we have on record:\n\
+\n\
+%s\n\
+===\n\
+Verifying Hashes\n\
+===\n\
+On Windows, use a utility such as hashdeep (http://md5deep.sourceforge.net/) to check if the SHA256 sums match.\n\
+C:\\location\\where\\you\\saved\\hashdeep -c sha256sum <TOR BROWSER FILE NAME>.exe\n\
+\n\
+Mac and Linux users may run 'shasum -a 256 <filename>' to generate SHA256 sums. \n\
+\n\
+If the hash does not match do *not* run the Tor Browser installer.\n\
+Ask us for help at:\n\
+\n\
+    help@rt.torproject.org\n\
+\n\
+We are ready to answer your queries in English, Farsi, Chinese, Arabic,\n\
+French and Spanish."
 
 #: Delay message
 msgid "delay_msg"
