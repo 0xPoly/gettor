@@ -488,7 +488,7 @@ class SMTP(object):
 
                 elif req['type'] == 'checksums':
                     try:
-                        checksums = self.core.get_checksums()
+                        checksums = self.core.get_checksums(req['lc'])
                     except (core.InternalError, core.ConfigurationError) as e:
                         status = 'core_error'
                         # something went wrong with the core

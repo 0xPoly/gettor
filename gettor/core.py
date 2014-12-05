@@ -171,7 +171,7 @@ class Core(object):
         # thanks for stopping by
         return links
 
-    def get_checksums(self):
+    def get_checksums(self, lc):
         # read the links files using ConfigParser
         # see the README for more details on the format used
         links = []
@@ -191,6 +191,7 @@ class Core(object):
         checksums = []
 
         package = re.compile("Package*")
+        hashes = re.compile("Package SHA*")
 
         # reading links from providers directory
         for name in links:
@@ -207,10 +208,14 @@ class Core(object):
                 for section in config.sections():
                     if self.supported_os.find(section) != -1:
                        for locale in config.options(section):
+                           if locale == lc:
                                for line in config.get(section, locale).split("\n"):
-                                   if package.match(line):
+                                   if hashes.match(line):
                                       checksums.append(line + "\n")
-                       checksums.append("\n")
+                                   elif package.match(line):
+                                      desc = self._checksum_handler(line)
+                                      checksums.append(desc + " - ")
+                               checksums.append("\n")
             except ConfigParser.Error as e:
                 raise InternalError("Error reading sections")
 
@@ -218,6 +223,36 @@ class Core(object):
            hashes = "".join(checksums)
            hashes.replace(",", "\n")
            return hashes
+
+    def _checksum_handler(self, line):
+        windows = re.search(
+                  'torbrowser-install-(\d\.\d\.\d)_(\w\w)(-\w\w)?\.exe',
+                  line)
+        if windows:
+           version = windows.group(1)
+           lc = windows.group(2)
+           description = "Windows (version " + str(version) + "-" +  str(lc) + ")"
+           return description
+        else:
+           linux = re.search(
+                   'tor-browser-linux(\d\d)-(\d\.\d\.\d)_(\w\w)(-\w\w)?\.tar\.xz',
+                    line)
+           if linux:
+              version = linux.group(2)
+              lc = linux.group(3)
+              description = "Linux (version " + str(version) + "-" + str(lc) + ")"
+              return description
+           else:
+              osx = re.search(
+                    'TorBrowser-(\d\.\d\.\d)-osx(\d\d)_(\w\w)(-\w\w)?\.dmg',
+                    line)
+              if osx:
+                 version = osx.group(2)
+                 lc = osx.group(3)
+                 description = "Mac OSX (version" + str(version) + "-" + str(lc) + ")"
+                 return description
+              else:
+                 raise ValueError("Invalid bundle format %s" % line)
 
     def _get_links(self, osys, lc):
         """Internal method to get the links.
